@@ -6,7 +6,8 @@ type Command struct {
 func Decode(data []byte) (interface{}, bool) {
 
 	val, _, err := DecodeOne(data)
-	return val, false
+
+	return val, err
 }
 
 func DecodeOne(buf []byte) (interface{}, int, bool) {
@@ -38,9 +39,11 @@ func readSimpleString(buf []byte) (string, int, bool) {
 
 	return string(buf[1:pos]), pos + 2, false
 }
+
 func readError(buf []byte) (string, int, bool) {
 	return readSimpleString(buf)
 }
+
 func readInt64(buf []byte) (int64, int, bool) {
 	if len(buf) < 3 { //|| buf[0] != ':' already checked
 		return 0, 0, true
@@ -71,7 +74,30 @@ func readInt64(buf []byte) (int64, int, bool) {
 
 	return sign * res, pos + 2, false
 }
-func readBulkString(buf []byte) (string, int, bool) {
 
-	return "test", 0, true
+func readBulkString(buf []byte) (string, int, bool) {
+	pos := 1
+
+	var res int
+
+	for pos < len(buf) && buf[pos] != '\r' {
+		b := buf[pos]
+		if b < '0' || b > '9' {
+			return "", pos, true
+		}
+		res = res*10 + int(b-'0')
+		pos++
+	}
+	if pos+1 >= len(buf) || buf[pos] != '\r' || buf[pos+1] != '\n' {
+		return "", pos, true
+	}
+	pos += 2 // skip \r\n
+	endpos := pos + res
+
+	return string(buf[pos:endpos]), endpos + 2, false
+
+}
+
+func readArray(buf []byte) (interface{}, int, bool) {
+	panic("unimplemented")
 }
