@@ -28,7 +28,7 @@ func DecodeOne(buf []byte) (interface{}, int, bool) {
 		return readArray(buf)
 	}
 
-	return nil, 0, false
+	return nil, 0, true
 }
 
 func readSimpleString(buf []byte) (string, int, bool) {
@@ -52,8 +52,11 @@ func readInt64(buf []byte) (int64, int, bool) {
 	pos := 1
 	sign := int64(1)
 
-	if buf[pos] == '-' {
+	switch buf[pos] {
+	case '-':
 		sign = -1
+		pos++
+	case '+': // + is optional
 		pos++
 	}
 
@@ -76,28 +79,45 @@ func readInt64(buf []byte) (int64, int, bool) {
 }
 
 func readBulkString(buf []byte) (string, int, bool) {
-	pos := 1
 
-	var res int
+	size, pos, err := readInt64(buf)
+	if err {
+		return "", pos, err
+	}
 
-	for pos < len(buf) && buf[pos] != '\r' {
-		b := buf[pos]
-		if b < '0' || b > '9' {
-			return "", pos, true
-		}
-		res = res*10 + int(b-'0')
-		pos++
+	if size < 1 { //  TODO there is no checking condition for if the written resp in wrong in size
+		return "", pos + 2, false
+		// all minus give empty for now
 	}
-	if pos+1 >= len(buf) || buf[pos] != '\r' || buf[pos+1] != '\n' {
-		return "", pos, true
-	}
-	pos += 2 // skip \r\n
-	endpos := pos + res
+
+	endpos := pos + int(size)
 
 	return string(buf[pos:endpos]), endpos + 2, false
 
 }
 
 func readArray(buf []byte) (interface{}, int, bool) {
-	panic("unimplemented")
+	// *<number-of-elements>\r\n<element-1>...<element-n>
+	size, pos, err := readInt64(buf)
+	if err {
+		return "", pos, err
+	}
+	if size == 0 {
+		return make([]interface{}, 0), pos, false
+	} else if size < 0 { //  TODO there is no checking condition for if the written resp in wrong in size
+		return nil, pos + 2, false
+	}
+	// all minus give empty for now
+	items := make([]interface{}, size)
+	for i := range size {
+		item, delta, err := DecodeOne(buf[pos:])
+		if err {
+			return "", pos, err
+		}
+
+		items[i] = item
+		pos += delta
+	}
+
+	return items, pos, false
 }
