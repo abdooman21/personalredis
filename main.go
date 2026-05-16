@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,7 +18,7 @@ func main() {
 
 	srv, err := server.NewServer(portString)
 	if err != nil {
-		log.Fatal(err)
+		os.Exit(1)
 	}
 	defer srv.Close()
 
