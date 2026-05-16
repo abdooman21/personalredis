@@ -18,8 +18,10 @@ type Peers struct {
 }
 
 func NewServer(port string) (*Server, error) {
-	ln, err := net.Listen("tcp", port)
+
+	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
+		slog.Error("Failed at New server", "err", err)
 		return nil, err
 	}
 
@@ -72,10 +74,16 @@ func (s *Server) handleConnection(conn net.Conn) {
 		data := buffer[:n]
 		slog.Info("received", "bytes", n, "data", data)
 
-		if _, err := conn.Write([]byte("+OK\r\n")); err != nil {
-			slog.Error("write error", "error", err)
-			return
+		cmd, err := readCommand(data)
+		if err != nil {
+			respError(conn, err.Error())
+			continue
 		}
+		resp(conn, cmd)
+		// if _, err := conn.Write([]byte("+OK\r\n")); err != nil {
+		// slog.Error("write error", "error", err)
+		// 	return
+		// }
 	}
 }
 
@@ -88,5 +96,5 @@ func (s *Server) addPeer(conn net.Conn) {
 func (s *Server) removePeer(conn net.Conn) {
 	s.peers.mu.Lock()
 	defer s.peers.mu.Unlock()
-	delete(s.peers.conns, conn)
+	delete(s.peers.conns, conn) // i dont like this
 }

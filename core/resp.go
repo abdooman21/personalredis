@@ -1,7 +1,4 @@
-package resp
-
-type Command struct {
-}
+package core
 
 func Decode(data []byte) (interface{}, bool) {
 
