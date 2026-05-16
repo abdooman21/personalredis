@@ -25,19 +25,8 @@ func main() {
 	fmt.Println("Custom Redis server listening on port ...", portString)
 	go srv.Serve()
 
-	// for {
-	// 	conn, err := srv.Listen.Accept()
-	// 	if err != nil {
-	// 		log.Println("Accept error:", err)
-	// 		continue
-	// 	}
-
-	// 	go handleConnection(conn)
-	// }
-
 	sigs := make(chan os.Signal, 1)
 
-	// 2. Register the channel to receive specific signals.
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	sig := <-sigs
